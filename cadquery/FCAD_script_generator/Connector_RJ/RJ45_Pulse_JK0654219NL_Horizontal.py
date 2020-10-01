@@ -25,9 +25,16 @@ dims = {
         'x_offset': 3.55,
         'y_offset': 23.50,
         'length': 3.20
+    },
+    'port': {
+        'width': 11.9126,
+        'height': 5.842,
+        'tab_bottom_width': 6.2992,
+        'tab_top_width': 4.064,
     }
 }
 
+# make shield
 shield = cq.Workplane('XZ') \
     .box(
     dims['shield']['width'],
@@ -37,6 +44,14 @@ shield = cq.Workplane('XZ') \
     .shell(-dims['shield']['thickness']) \
     .fillet(dims['shield']['thickness'] / 2) \
     .translate((0, dims['shield']['y_offset'], 0))
+
+# make port
+port = shield.faces('<Y').workplane() \
+    .rect(dims['port']['width'], dims['port']['height']) \
+    .extrude(-dims['shield']['thickness'], combine=False)
+
+# make port hole in shield
+shield = shield.cut(port)
 
 # create center point lists for first two rows of pins
 pin_centers = []
@@ -65,8 +80,8 @@ ct_spacing = dims['center_taps']['spacing']
 
 # create one side of ct centers
 for i in range(dims['center_taps']['count'] // 2):
-    ct_centers.append((dims['center_taps']['x_offset'] + i* ct_spacing, dims['center_taps']['y_offset']))
-    
+    ct_centers.append((dims['center_taps']['x_offset'] + i * ct_spacing, dims['center_taps']['y_offset']))
+
 # create other side of ct centers
 ct_centers_mirror = [(-point[0], point[1]) for point in ct_centers]
 ct_centers.extend(ct_centers_mirror)
@@ -77,6 +92,15 @@ center_taps = cq.Workplane('front') \
     .circle(dims['center_taps']['radius']) \
     .extrude(-dims['center_taps']['length'])
 
+# create plastic body
+body = shield.faces('>Y[-2]').workplane() \
+    .rect(
+        dims['shield']['width'] - 2 * dims['shield']['thickness'],
+        dims['shield']['height'] - 2 * dims['shield']['thickness']
+    ) \
+    .extrude(dims['shield']['depth'] - 2 * dims['shield']['thickness'], combine=False)
+
 show_object(shield, name='shield')
 show_object(pins, name='pins')
 show_object(center_taps, name='center_taps')
+show_object(body, name='body', options={'color': '#000000'})
